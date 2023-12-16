@@ -1,6 +1,6 @@
-from torch.utils.data import Dataset
-from PIL import Image
 import numpy as np
+from PIL import Image
+from torch.utils.data import Dataset
 
 
 def make_dataset(image_list, labels):
@@ -12,6 +12,16 @@ def make_dataset(image_list, labels):
             images = [(val.split()[0], np.array([int(la) for la in val.split()[1:]])) for val in image_list]
         else:
             images = [(val.split()[0], int(val.split()[1])) for val in image_list]
+    return images
+def make_dataset_target(image_list, labels):
+    if labels:
+        len_ = len(image_list)
+        images = [(image_list[i].strip(), labels[i, :]) for i in range(len_)]
+    else:
+        if len(image_list[0].split()) > 2:
+            images = [(val.split()[0], np.array([int(la) for la in val.split()[1:]])) for val in image_list]
+        else:
+            images = [val.split()[0] for val in image_list]
     return images
 
 
@@ -52,6 +62,34 @@ class ImageList(Dataset):
             target = self.target_transform(target)
 
         return img, target
+
+    def __len__(self):
+        return len(self.imgs)
+class ImageList_target(Dataset):
+    def __init__(self, image_list, labels=None, transform=None, target_transform=None, mode='RGB'):
+        imgs = make_dataset_target(image_list, labels)
+        if len(imgs) == 0:
+            raise (RuntimeError("Found 0 images in subfolders of: " + root + "\n"
+                                                                             "Supported image extensions are: " + ",".join(
+                IMG_EXTENSIONS)))
+
+        self.imgs = imgs
+        self.transform = transform
+        #self.target_transform = target_transform
+        if mode == 'RGB':
+            self.loader = rgb_loader
+        elif mode == 'L':
+            self.loader = l_loader
+
+    def __getitem__(self, index):
+        path = self.imgs[index]
+        img = self.loader(path)
+        if self.transform is not None:
+            img = self.transform(img)
+        # if self.target_transform is not None:
+        #     target = self.target_transform(target)
+
+        return img
 
     def __len__(self):
         return len(self.imgs)

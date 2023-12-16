@@ -1,19 +1,21 @@
 import numpy as np
 from torchvision import transforms
-import os
-from PIL import Image, ImageOps
+from PIL import Image
 import numbers
 import torch
 
+
 class ResizeImage():
     def __init__(self, size):
-      if isinstance(size, int):
-        self.size = (int(size), int(size))
-      else:
-        self.size = size
+        if isinstance(size, int):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+
     def __call__(self, img):
-      th, tw = self.size
-      return img.resize((th, tw))
+        th, tw = self.size
+        return img.resize((th, tw))
+
 
 class RandomSizedCrop(object):
     """Crop the given PIL.Image to random size and aspect ratio.
@@ -31,9 +33,9 @@ class RandomSizedCrop(object):
         self.interpolation = interpolation
 
     def __call__(self, img):
-        h_off = random.randint(0, img.shape[1]-self.size)
-        w_off = random.randint(0, img.shape[2]-self.size)
-        img = img[:, h_off:h_off+self.size, w_off:w_off+self.size]
+        h_off = random.randint(0, img.shape[1] - self.size)
+        w_off = random.randint(0, img.shape[2] - self.size)
+        img = img[:, h_off:h_off + self.size, w_off:w_off + self.size]
         return img
 
 
@@ -51,7 +53,7 @@ class Normalize(object):
             self.mean = mean
         else:
             arr = np.load(meanfile)
-            self.mean = torch.from_numpy(arr.astype('float32')/255.0)[[2,1,0],:,:]
+            self.mean = torch.from_numpy(arr.astype('float32') / 255.0)[[2, 1, 0], :, :]
 
     def __call__(self, tensor):
         """
@@ -64,7 +66,6 @@ class Normalize(object):
         for t, m in zip(tensor, self.mean):
             t.sub_(m)
         return tensor
-
 
 
 class PlaceCrop(object):
@@ -106,6 +107,7 @@ class ForceFlip(object):
         """
         return img.transpose(Image.FLIP_LEFT_RIGHT)
 
+
 class CenterCrop(object):
     """Crops the given PIL.Image at the center.
     Args:
@@ -131,17 +133,17 @@ class CenterCrop(object):
         th, tw = self.size
         w_off = int((w - tw) / 2.)
         h_off = int((h - th) / 2.)
-        img = img[:, h_off:h_off+th, w_off:w_off+tw]
+        img = img[:, h_off:h_off + th, w_off:w_off + tw]
         return img
 
 
 def image_train(resize_size=256, crop_size=224, alexnet=False):
-  if not alexnet:
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                   std=[0.229, 0.224, 0.225])
-  else:
-    normalize = Normalize(meanfile='./ilsvrc_2012_mean.npy')
-  return  transforms.Compose([
+    if not alexnet:
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+    else:
+        normalize = Normalize(meanfile='./ilsvrc_2012_mean.npy')
+    return transforms.Compose([
         ResizeImage(resize_size),
         transforms.RandomResizedCrop(crop_size),
         transforms.RandomHorizontalFlip(),
@@ -149,27 +151,41 @@ def image_train(resize_size=256, crop_size=224, alexnet=False):
         normalize
     ])
 
-def image_test(resize_size=256, crop_size=224, alexnet=False):
+def image_target(resize_size=256, crop_size=224, alexnet=False):
   if not alexnet:
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])
   else:
     normalize = Normalize(meanfile='./ilsvrc_2012_mean.npy')
-  start_first = 0
-  start_center = (resize_size - crop_size - 1) / 2
-  start_last = resize_size - crop_size - 1
- 
-  return transforms.Compose([
-    ResizeImage(resize_size),
-    PlaceCrop(crop_size, start_center, start_center),
-    transforms.ToTensor(),
-    normalize
-  ])
+  return  transforms.Compose([
+        transforms.Resize((resize_size,resize_size)),
+        transforms.RandomCrop(crop_size),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        normalize
+    ])
+def image_test(resize_size=256, crop_size=224, alexnet=False):
+    if not alexnet:
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+    else:
+        normalize = Normalize(meanfile='./ilsvrc_2012_mean.npy')
+    start_first = 0
+    start_center = (resize_size - crop_size - 1) / 2
+    start_last = resize_size - crop_size - 1
+
+    return transforms.Compose([
+        ResizeImage(resize_size),
+        PlaceCrop(crop_size, start_center, start_center),
+        transforms.ToTensor(),
+        normalize
+    ])
+
 
 def image_test_10crop(resize_size=256, crop_size=224, alexnet=False):
     if not alexnet:
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                   std=[0.229, 0.224, 0.225])
+                                         std=[0.229, 0.224, 0.225])
     else:
         normalize = Normalize(meanfile='./ilsvrc_2012_mean.npy')
     start_first = 0
@@ -177,64 +193,64 @@ def image_test_10crop(resize_size=256, crop_size=224, alexnet=False):
     start_last = resize_size - crop_size - 1
     data_transforms = [
         transforms.Compose([
-        ResizeImage(resize_size),ForceFlip(),
-        PlaceCrop(crop_size, start_first, start_first),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size), ForceFlip(),
+            PlaceCrop(crop_size, start_first, start_first),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),ForceFlip(),
-        PlaceCrop(crop_size, start_last, start_last),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size), ForceFlip(),
+            PlaceCrop(crop_size, start_last, start_last),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),ForceFlip(),
-        PlaceCrop(crop_size, start_last, start_first),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size), ForceFlip(),
+            PlaceCrop(crop_size, start_last, start_first),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),ForceFlip(),
-        PlaceCrop(crop_size, start_first, start_last),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size), ForceFlip(),
+            PlaceCrop(crop_size, start_first, start_last),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),ForceFlip(),
-        PlaceCrop(crop_size, start_center, start_center),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size), ForceFlip(),
+            PlaceCrop(crop_size, start_center, start_center),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),
-        PlaceCrop(crop_size, start_first, start_first),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size),
+            PlaceCrop(crop_size, start_first, start_first),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),
-        PlaceCrop(crop_size, start_last, start_last),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size),
+            PlaceCrop(crop_size, start_last, start_last),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),
-        PlaceCrop(crop_size, start_last, start_first),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size),
+            PlaceCrop(crop_size, start_last, start_first),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),
-        PlaceCrop(crop_size, start_first, start_last),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size),
+            PlaceCrop(crop_size, start_first, start_last),
+            transforms.ToTensor(),
+            normalize
         ]),
         transforms.Compose([
-        ResizeImage(resize_size),
-        PlaceCrop(crop_size, start_center, start_center),
-        transforms.ToTensor(),
-        normalize
+            ResizeImage(resize_size),
+            PlaceCrop(crop_size, start_center, start_center),
+            transforms.ToTensor(),
+            normalize
         ])
     ]
     return data_transforms
