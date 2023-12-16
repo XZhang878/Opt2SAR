@@ -1,0 +1,10 @@
+{
+  "classes":6,
+  "label":[
+    "airplane",
+    "bridge",
+    "building",
+    "farmland",
+    "harbor",
+    "storage_tank"]
+}
